@@ -13,6 +13,7 @@
     APP_NAME: YIO-integration.bangolufsen
     APP_ARCHITECTURE: RPi0
     PROJECT_NAME: integration.bangolufsen
+    HASH_FILENAME: yio-integration-bangolufsen.hash
 
   jobs:
     build:
@@ -79,16 +80,20 @@
           with:
             name: ${{ env.APP_NAME }}-${{ env.APP_ARCHITECTURE }}-debug
             path: ./debug
+
         - name: Get artifact version
           run: |
             read -r APP_VERSION < release/version.txt
             echo "::set-env name=APP_VERSION::$APP_VERSION"
             echo "::set-env name=TIMESTAMP::$(date +"%Y%m%d_%H%M%S")"
+
         - name: Create GitHub development build archives
           if: "!contains(github.ref, 'tags/v')"
           run: |
             tar cvf ${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-${{ env.TIMESTAMP }}-${{ env.APP_ARCHITECTURE }}-debug.tar -C debug .
             tar cvf ${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-${{ env.TIMESTAMP }}-${{ env.APP_ARCHITECTURE }}-release.tar -C release .
+            for filename in *.tar; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
+
         - name: Create Pre-Release ${{ env.APP_VERSION }}
           uses: "marvinpinto/action-automatic-releases@latest"
           if: "!contains(github.ref, 'tags/v')"
@@ -99,11 +104,15 @@
             title: "Development Build ${{ env.APP_VERSION }}"
             files: |
                 *.tar
+                ${{ env.HASH_FILENAME }}
+
         - name: Create GitHub release archives
           if: "contains(github.ref, 'tags/v')"
           run: |
             tar cvf ${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-${{ env.APP_ARCHITECTURE }}-debug.tar -C debug .
             tar cvf ${{ env.APP_NAME }}-v${{ env.APP_VERSION }}-${{ env.APP_ARCHITECTURE }}-release.tar -C release .
+            for filename in *.tar; do echo "sha256  `sha256sum $filename`" >> ${{ env.HASH_FILENAME }}; done;
+
         - name: Create Release ${{ env.APP_VERSION }}
           uses: "marvinpinto/action-automatic-releases@latest"
           if: "contains(github.ref, 'tags/v')"
@@ -112,3 +121,5 @@
             prerelease: false
             files: |
               *.tar
+                ${{ env.HASH_FILENAME }}
+
