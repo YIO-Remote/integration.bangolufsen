@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org",
+    "$id": "http://yio-remote.com/bangolufsen.json",
+    "type": "object",
+    "title": "YIO Integration Bang&Olufsen Schema",
+    "description": "Required data points to set up a Bang&Olufsen integrations.",
+    "additionalProperties": true,
+    "required": [
+        "ip",
+        "entity_id"
+    ],
+    "properties": {
+        "ip": {
+            "$id": "#/properties/ip",
+            "type": "string",
+            "title": "IP address or hostname and port",
+            "description": "The IP address or hostname of your Bang&Olufsen product.",
+            "examples": [
+                "192.168.100.2", "yourdomain.com"
+            ]
+        },
+        "entity_id": {
+            "$id": "#/properties/entity_id",
+            "type": "string",
+            "title": "The entity_id schema",
+            "description": "Not user input. A unique entity id.",
+            "examples": [
+                "6550f44c-7f11-11ea-bc55-0242ac130003"
+            ]
+        }
+    }
+}
