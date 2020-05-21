@@ -111,7 +111,7 @@ void BangOlufsen::updateEntity(const QString &entity_id, const QVariantMap &map)
         }
 
         int volume = getVolume(map);
-        if (entity->isSupported(MediaPlayerDef::F_VOLUME_SET)) {
+        if (entity->isSupported(MediaPlayerDef::F_VOLUME_SET) && volume != -1) {
             entity->updateAttrByIndex(MediaPlayerDef::VOLUME, volume);
         }
 
@@ -340,9 +340,9 @@ void BangOlufsen::putRequest(const QString &url, const QVariantMap &params) {
 void BangOlufsen::putRequest(const QString &url) { putRequest(url, QVariantMap()); }
 
 int BangOlufsen::getVolume(const QVariantMap &map) {
-    int volume = 0;
+    int volume = -1;
     if (map.contains("data") && map.value("type").toString() == "VOLUME") {
-        volume = map.value("data").toMap().value("speaker").toMap().value("level").toInt();
+        volume = static_cast<int>(map.value("data").toMap().value("speaker").toMap().value("level").toDouble());
     }
     return volume;
 }
@@ -459,13 +459,13 @@ int BangOlufsen::getDuration(const QVariantMap &map) {
 void BangOlufsen::setVolume(const int &volume) {
     QVariantMap data;
     data.insert("level", volume);
-    putRequest("BeoZone/Zone/Sound/Volume/Speaker/Level", data);
+    putRequest("/BeoZone/Zone/Sound/Volume/Speaker/Level", data);
 }
 
 void BangOlufsen::setMute(const bool &value) {
     QVariantMap data;
     data.insert("muted", value);
-    putRequest("BeoZone/Zone/Sound/Volume/Speaker/Muted", data);
+    putRequest("/BeoZone/Zone/Sound/Volume/Speaker/Muted", data);
 }
 
 void BangOlufsen::Play() {
