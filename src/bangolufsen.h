@@ -123,7 +123,7 @@ class BangOlufsen : public Integration {
     //    void joinExperience();
     //    void leaveExperience();
 
- private slots:
+ private slots:  // NOLINT open issue: https://github.com/cpplint/cpplint/pull/99
     void onPollingTimerTimeout();
     void onConnectionEstablished();
     void onConnectionDropped(QNetworkReply::NetworkError code);
