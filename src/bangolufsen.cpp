@@ -1,8 +1,6 @@
 /******************************************************************************
  *
- # Copyright (C) 2020 Markus Zehnder <business@markuszehnder.ch>
- * Copyright (C) 2019 Marton Borzak <hello@martonborzak.com>
- * Copyright (C) 2019 Christian Riedl <ric@rts.co.at>
+ * Copyright (C) 2020 Marton Borzak <hello@martonborzak.com>
  *
  * This file is part of the YIO-Remote software project.
  *
