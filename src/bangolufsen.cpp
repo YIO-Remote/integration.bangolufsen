@@ -380,7 +380,7 @@ void BangOlufsen::getStandby() {
     QNetworkReply *reply = getRequest("/BeoDevice/powerManagement/standby");
 
     QObject::connect(reply, &QNetworkReply::finished, this, [=]() {
-        if (reply) {
+        if (!reply->error()) {
             QString answer = m_reply->readAll().trimmed();
 
             QVariantMap map;
@@ -541,7 +541,7 @@ void BangOlufsen::onStreamingFinished() {
 
 void BangOlufsen::processStreamingJson() {
     if (m_reply) {
-        if (m_reply->isOpen()) {
+        if (m_reply->isRunning()) {
             QString     answer  = m_reply->readAll();
             QStringList answers = answer.split("\r\n\r\n");
 
