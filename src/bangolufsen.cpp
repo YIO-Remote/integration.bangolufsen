@@ -198,7 +198,9 @@ void BangOlufsen::connect() {
                 }
             } else {
                 qCDebug(m_logCategory) << "Cannot connect" << reply->errorString();
-                setState(DISCONNECTED);
+                if (m_state != DISCONNECTED) {
+                    setState(DISCONNECTED);
+                }
             }
         });
 
@@ -216,7 +218,9 @@ void BangOlufsen::connect() {
                          [=](QNetworkReply::NetworkError code) {
                              if (!m_userDisconnect) {
                                  qCDebug(m_logCategory) << "Bang & Olufsen product disconnected" << code;
-                                 setState(DISCONNECTED);
+                                 if (m_state != DISCONNECTED) {
+                                     setState(DISCONNECTED);
+                                 }
                              }
                          });
 
@@ -279,13 +283,6 @@ void BangOlufsen::getRequest(const QString &url) {
 
     QObject *context = new QObject(this);
 
-    // set the URL
-    // url = "/BeoDevice/powerManagement/standby"
-    request.setUrl(QUrl(m_baseUrl + url));
-
-    // send the get request
-    manager->get(request);
-
     // connect to finish signal
     QObject::connect(manager, &QNetworkAccessManager::finished, context, [=](QNetworkReply *reply) {
         if (reply->error()) {
@@ -316,6 +313,13 @@ void BangOlufsen::getRequest(const QString &url) {
     QObject::connect(
         manager, &QNetworkAccessManager::networkAccessibleChanged, context,
         [=](QNetworkAccessManager::NetworkAccessibility accessibility) { qCDebug(m_logCategory) << accessibility; });
+
+    // set the URL
+    // url = "/BeoDevice/powerManagement/standby"
+    request.setUrl(QUrl(m_baseUrl + url));
+
+    // send the get request
+    manager->get(request);
 }
 
 void BangOlufsen::postRequest(const QString &url, const QString &params) {
