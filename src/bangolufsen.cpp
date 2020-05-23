@@ -381,28 +381,30 @@ void BangOlufsen::getStandby() {
 
     QObject::connect(reply, &QNetworkReply::finished, this, [=]() {
         if (!reply->error()) {
-            QString answer = m_reply->readAll().trimmed();
+            if (reply) {
+                QString answer = m_reply->readAll().trimmed();
 
-            QVariantMap map;
-            if (answer != "") {
-                // convert to json
-                QJsonParseError parseerror;
-                QJsonDocument   doc = QJsonDocument::fromJson(answer.toUtf8(), &parseerror);
-                if (parseerror.error != QJsonParseError::NoError) {
-                    qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
-                    return;
-                }
-                map = doc.toVariant().toMap();
+                QVariantMap map;
+                if (answer != "") {
+                    // convert to json
+                    QJsonParseError parseerror;
+                    QJsonDocument   doc = QJsonDocument::fromJson(answer.toUtf8(), &parseerror);
+                    if (parseerror.error != QJsonParseError::NoError) {
+                        qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
+                        return;
+                    }
+                    map = doc.toVariant().toMap();
 
-                EntityInterface *entity = m_entities->getEntityInterface(m_entityId);
+                    EntityInterface *entity = m_entities->getEntityInterface(m_entityId);
 
-                if (entity && entity->isSupported(MediaPlayerDef::F_TURN_ON) &&
-                    entity->isSupported(MediaPlayerDef::F_TURN_OFF)) {
-                    if (map.contains("standby") &&
-                        map.value("standby").toMap().value("powerState").toString() == "on") {
-                        entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::ON);
-                    } else {
-                        entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::OFF);
+                    if (entity && entity->isSupported(MediaPlayerDef::F_TURN_ON) &&
+                        entity->isSupported(MediaPlayerDef::F_TURN_OFF)) {
+                        if (map.contains("standby") &&
+                            map.value("standby").toMap().value("powerState").toString() == "on") {
+                            entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::ON);
+                        } else {
+                            entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::OFF);
+                        }
                     }
                 }
             }
