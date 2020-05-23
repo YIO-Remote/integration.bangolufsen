@@ -89,7 +89,6 @@ class BangOlufsen : public Integration {
     QString m_entityId;
 
     QNetworkAccessManager* m_manager;
-    QNetworkReply*         m_reply;
 
     bool m_userDisconnect = false;
 
@@ -124,8 +123,4 @@ class BangOlufsen : public Integration {
 
  private slots:  // NOLINT open issue: https://github.com/cpplint/cpplint/pull/99
     void onPollingTimerTimeout();
-    void onConnectionEstablished();
-    void onConnectionDropped(QNetworkReply::NetworkError code);
-    void onStreamingFinished();
-    void processStreamingJson();
 };
