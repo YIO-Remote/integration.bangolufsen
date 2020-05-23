@@ -193,7 +193,10 @@ void BangOlufsen::connect() {
 }
 
 void BangOlufsen::disconnect() {
-    m_pollingTimer->stop();
+    if (m_pollingTimer->isActive()) {
+        m_pollingTimer->stop();
+        qCDebug(m_logCategory) << "Polling timer stopped.";
+    }
 
     if (m_state != DISCONNECTED) {
         qCDebug(m_logCategory) << "Disconnecting a Bang & Olufsen product";
@@ -533,11 +536,6 @@ void BangOlufsen::onStreamingFinished() {
         qCDebug(m_logCategory) << "Bang & Olufsen product dropped the streaming, reconnecting";
         disconnect();
         connect();
-    } else {
-        if (m_reply) {
-            m_reply->deleteLater();
-            qCDebug(m_logCategory) << "Network reply deleted";
-        }
     }
 }
 
