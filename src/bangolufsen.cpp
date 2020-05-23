@@ -159,73 +159,75 @@ void BangOlufsen::connect() {
         m_pollingTimer->start();
     }
 
-    setState(CONNECTING);
-    m_userDisconnect = false;
-    qCDebug(m_logCategory) << "Connecting to a Bang & Olufsen product:" << m_baseUrl;
+    if (m_state != CONNECTED) {
+        setState(CONNECTING);
+        m_userDisconnect = false;
+        qCDebug(m_logCategory) << "Connecting to a Bang & Olufsen product:" << m_baseUrl;
 
-    m_manager = new QNetworkAccessManager(this);
+        m_manager = new QNetworkAccessManager(this);
 
-    QNetworkRequest request;
-    request.setUrl(QUrl(m_baseUrl + "/BeoNotify/Notifications"));
+        QNetworkRequest request;
+        request.setUrl(QUrl(m_baseUrl + "/BeoNotify/Notifications"));
 
-    QNetworkReply *reply = m_manager->get(request);
+        QNetworkReply *reply = m_manager->get(request);
 
-    // read the streaming json
-    QObject::connect(reply, &QIODevice::readyRead, this, [=]() {
-        if (!reply->error()) {
-            setState(CONNECTED);
-            QString     answer  = reply->readAll();
-            QStringList answers = answer.split("\r\n\r\n");
+        // read the streaming json
+        QObject::connect(reply, &QIODevice::readyRead, this, [=]() {
+            if (!reply->error()) {
+                setState(CONNECTED);
+                QString     answer  = reply->readAll();
+                QStringList answers = answer.split("\r\n\r\n");
 
-            for (int i = 0; i < answers.length(); i++) {
-                QString answerSingle = answers[i].trimmed();
+                for (int i = 0; i < answers.length(); i++) {
+                    QString answerSingle = answers[i].trimmed();
 
-                QVariantMap map;
-                if (answerSingle != "") {
-                    // convert to json
-                    QJsonParseError parseerror;
-                    QJsonDocument   doc = QJsonDocument::fromJson(answerSingle.toUtf8(), &parseerror);
-                    if (parseerror.error != QJsonParseError::NoError) {
-                        qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
-                        return;
+                    QVariantMap map;
+                    if (answerSingle != "") {
+                        // convert to json
+                        QJsonParseError parseerror;
+                        QJsonDocument   doc = QJsonDocument::fromJson(answerSingle.toUtf8(), &parseerror);
+                        if (parseerror.error != QJsonParseError::NoError) {
+                            qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
+                            return;
+                        }
+
+                        // createa a map object and update entity
+                        map = doc.toVariant().toMap().value("notification").toMap();
+                        updateEntity(m_entityId, map);
                     }
-
-                    // createa a map object and update entity
-                    map = doc.toVariant().toMap().value("notification").toMap();
-                    updateEntity(m_entityId, map);
                 }
+            } else {
+                qCDebug(m_logCategory) << "Cannot connect" << reply->errorString();
+                setState(DISCONNECTED);
             }
-        } else {
-            qCDebug(m_logCategory) << "Cannot connect" << reply->errorString();
-            setState(DISCONNECTED);
-        }
-    });
+        });
 
-    // handle closed connection
-    QObject::connect(m_manager, &QNetworkAccessManager::finished, this, [=]() {
-        qCDebug(m_logCategory) << "Network access manager finished";
-        if (m_manager) {
-            m_manager->deleteLater();
-            qCDebug(m_logCategory) << "Network access manager deleted.";
-        }
-    });
+        // handle closed connection
+        QObject::connect(m_manager, &QNetworkAccessManager::finished, this, [=]() {
+            qCDebug(m_logCategory) << "Network access manager finished";
+            if (m_manager) {
+                m_manager->deleteLater();
+                qCDebug(m_logCategory) << "Network access manager deleted.";
+            }
+        });
 
-    // handle dropped connection
-    QObject::connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), this,
-                     [=](QNetworkReply::NetworkError code) {
-                         if (!m_userDisconnect) {
-                             qCDebug(m_logCategory) << "Bang & Olufsen product disconnected" << code;
-                             setState(DISCONNECTED);
-                         }
-                     });
+        // handle dropped connection
+        QObject::connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), this,
+                         [=](QNetworkReply::NetworkError code) {
+                             if (!m_userDisconnect) {
+                                 qCDebug(m_logCategory) << "Bang & Olufsen product disconnected" << code;
+                                 setState(DISCONNECTED);
+                             }
+                         });
 
-    QObject::connect(this, &BangOlufsen::disconnected, this, [=]() {
-        qCDebug(m_logCategory) << "Disconnected";
-        if (m_manager) {
-            m_manager->deleteLater();
-            qCDebug(m_logCategory) << "Network access manager deleted.";
-        }
-    });
+        QObject::connect(this, &BangOlufsen::disconnected, this, [=]() {
+            qCDebug(m_logCategory) << "Disconnected";
+            if (m_manager) {
+                m_manager->deleteLater();
+                qCDebug(m_logCategory) << "Network access manager deleted.";
+            }
+        });
+    }
 }
 
 void BangOlufsen::disconnect() {
@@ -233,10 +235,11 @@ void BangOlufsen::disconnect() {
         m_pollingTimer->stop();
         qCDebug(m_logCategory) << "Polling timer stopped.";
     }
-
-    qCDebug(m_logCategory) << "Disconnecting a Bang & Olufsen product";
-    m_userDisconnect = true;
-    setState(DISCONNECTED);
+    if (m_state != DISCONNECTED) {
+        qCDebug(m_logCategory) << "Disconnecting a Bang & Olufsen product";
+        m_userDisconnect = true;
+        setState(DISCONNECTED);
+    }
 }
 
 void BangOlufsen::enterStandby() { disconnect(); }
