@@ -159,7 +159,7 @@ void BangOlufsen::connect() {
         m_pollingTimer->start();
     }
 
-    if (m_state != CONNECTED) {
+    if (m_state != CONNECTED || m_state != CONNECTING) {
         setState(CONNECTING);
         m_userDisconnect = false;
         qCDebug(m_logCategory) << "Connecting to a Bang & Olufsen product:" << m_baseUrl;
@@ -272,24 +272,40 @@ void BangOlufsen::sendCommand(const QString &type, const QString &entity_id, int
     }
 }
 
-QNetworkReply *BangOlufsen::getRequest(const QString &url) {
+void BangOlufsen::getRequest(const QString &url) {
     // create new networkacces manager and request
     QNetworkAccessManager *manager = new QNetworkAccessManager(this);
     QNetworkRequest        request;
-    QNetworkReply *        reply;
-    QObject *              context = new QObject(this);
+
+    QObject *context = new QObject(this);
 
     // set the URL
     // url = "/BeoDevice/powerManagement/standby"
     request.setUrl(QUrl(m_baseUrl + url));
 
     // send the get request
-    reply = manager->get(request);
+    manager->get(request);
 
     // connect to finish signal
-    QObject::connect(reply, &QNetworkReply::finished, context, [=]() {
+    QObject::connect(manager, &QNetworkAccessManager::finished, context, [=](QNetworkReply *reply) {
         if (reply->error()) {
             qCWarning(m_logCategory) << reply->errorString();
+        }
+
+        QString     answer = reply->readAll();
+        QVariantMap map;
+        if (answer != "") {
+            // convert to json
+            QJsonParseError parseerror;
+            QJsonDocument   doc = QJsonDocument::fromJson(answer.toUtf8(), &parseerror);
+            if (parseerror.error != QJsonParseError::NoError) {
+                qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
+                return;
+            }
+
+            // createa a map object
+            map = doc.toVariant().toMap();
+            emit requestReady(map, url);
         }
 
         reply->deleteLater();
@@ -297,16 +313,9 @@ QNetworkReply *BangOlufsen::getRequest(const QString &url) {
         manager->deleteLater();
     });
 
-    QObject::connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), context,
-                     [=](QNetworkReply::NetworkError code) {
-                         qCWarning(m_logCategory) << code;
-
-                         reply->deleteLater();
-                         context->deleteLater();
-                         manager->deleteLater();
-                     });
-
-    return reply;
+    QObject::connect(
+        manager, &QNetworkAccessManager::networkAccessibleChanged, context,
+        [=](QNetworkAccessManager::NetworkAccessibility accessibility) { qCDebug(m_logCategory) << accessibility; });
 }
 
 void BangOlufsen::postRequest(const QString &url, const QString &params) {
@@ -407,39 +416,27 @@ QString BangOlufsen::getState(const QVariantMap &map) {
 }
 
 void BangOlufsen::getStandby() {
-    QNetworkReply *reply = getRequest("/BeoDevice/powerManagement/standby");
+    QString url = "/BeoDevice/powerManagement/standby";
 
-    QObject::connect(reply, &QNetworkReply::finished, this, [=]() {
-        if (!reply->error()) {
-            if (reply) {
-                QString answer = reply->readAll().trimmed();
+    QObject *context = new QObject(this);
 
-                QVariantMap map;
-                if (answer != "") {
-                    // convert to json
-                    QJsonParseError parseerror;
-                    QJsonDocument   doc = QJsonDocument::fromJson(answer.toUtf8(), &parseerror);
-                    if (parseerror.error != QJsonParseError::NoError) {
-                        qCWarning(m_logCategory) << "JSON error : " << parseerror.errorString();
-                        return;
-                    }
-                    map = doc.toVariant().toMap();
+    QObject::connect(this, &BangOlufsen::requestReady, context, [=](const QVariantMap &map, const QString &rUrl) {
+        if (rUrl == url) {
+            EntityInterface *entity = m_entities->getEntityInterface(m_entityId);
 
-                    EntityInterface *entity = m_entities->getEntityInterface(m_entityId);
-
-                    if (entity && entity->isSupported(MediaPlayerDef::F_TURN_ON) &&
-                        entity->isSupported(MediaPlayerDef::F_TURN_OFF)) {
-                        if (map.contains("standby") &&
-                            map.value("standby").toMap().value("powerState").toString() == "on") {
-                            entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::ON);
-                        } else {
-                            entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::OFF);
-                        }
-                    }
+            if (entity && entity->isSupported(MediaPlayerDef::F_TURN_ON) &&
+                entity->isSupported(MediaPlayerDef::F_TURN_OFF)) {
+                if (map.contains("standby") && map.value("standby").toMap().value("powerState").toString() == "on") {
+                    entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::ON);
+                } else {
+                    entity->updateAttrByIndex(MediaPlayerDef::STATE, MediaPlayerDef::OFF);
                 }
             }
         }
+        context->deleteLater();
     });
+
+    getRequest(url);
 }
 
 QVariantMap BangOlufsen::getMusicInfo(const QVariantMap &map) {

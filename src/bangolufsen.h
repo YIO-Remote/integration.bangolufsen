@@ -79,10 +79,10 @@ class BangOlufsen : public Integration {
     void updateEntity(const QString& entity_id, const QVariantMap& map);
 
     // get, post and put requests
-    QNetworkReply* getRequest(const QString& url);
-    void           postRequest(const QString& url, const QString& params);
-    void           putRequest(const QString& url, const QVariantMap& params);
-    void           putRequest(const QString& url);
+    void getRequest(const QString& url);
+    void postRequest(const QString& url, const QString& params);
+    void putRequest(const QString& url, const QVariantMap& params);
+    void putRequest(const QString& url);
 
     QString m_ip;
     QString m_baseUrl;
