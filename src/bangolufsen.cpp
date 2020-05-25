@@ -203,9 +203,13 @@ void BangOlufsen::connect() {
         // handle closed connection
         QObject::connect(m_manager, &QNetworkAccessManager::finished, this, [=]() {
             qCDebug(m_logCategory) << "Manager finished: Network access manager finished";
-            if (m_manager) {
-                m_manager->deleteLater();
-                qCDebug(m_logCategory) << "Manager finished: Network access manager deleted.";
+            m_manager->disconnect();
+            m_manager->deleteLater();
+            m_manager = nullptr;
+            qCDebug(m_logCategory) << "Manager finished: Network access manager deleted.";
+            if (!m_userDisconnect) {
+                qCDebug(m_logCategory) << "Bang & Olufsen product disconnected, reconnecting ...";
+                connect();
             }
         });
 
@@ -215,6 +219,7 @@ void BangOlufsen::connect() {
                              if (!m_userDisconnect) {
                                  qCDebug(m_logCategory) << "Bang & Olufsen product disconnected" << code;
                                  disconnect();
+                                 connect();
                              }
                          });
     }
@@ -228,10 +233,10 @@ void BangOlufsen::disconnect() {
     if (m_state != DISCONNECTED) {
         qCDebug(m_logCategory) << "Disconnecting a Bang & Olufsen product";
         m_userDisconnect = true;
-        if (m_manager) {
-            m_manager->deleteLater();
-            qCDebug(m_logCategory) << "Network access manager deleted.";
-        }
+        m_manager->disconnect();
+        m_manager->deleteLater();
+        m_manager = nullptr;
+        qCDebug(m_logCategory) << "Network access manager deleted.";
         setState(DISCONNECTED);
     }
 }
