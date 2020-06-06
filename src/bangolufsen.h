@@ -64,6 +64,8 @@ class BangOlufsen : public Integration {
     BangOlufsen(const QVariantMap& config, EntitiesInterface* entities, NotificationsInterface* notifications,
                 YioAPIInterface* api, ConfigInterface* configObj, Plugin* plugin);
 
+    ~BangOlufsen() override;
+
     void sendCommand(const QString& type, const QString& entityId, int command, const QVariant& param) override;
 
  signals:

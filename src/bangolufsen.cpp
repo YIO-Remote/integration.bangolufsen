@@ -102,6 +102,20 @@ BangOlufsen::BangOlufsen(const QVariantMap &config, EntitiesInterface *entities,
     addAvailableEntity(m_entityId, "media_player", integrationId(), friendlyName(), supportedFeatures);
 }
 
+BangOlufsen::~BangOlufsen() {
+    if (m_reply != nullptr) {
+        m_reply->abort();
+        m_reply->disconnect();
+        delete m_reply;
+        m_reply = nullptr;
+    }
+
+    if (m_manager != nullptr) {
+        delete m_manager;
+        m_manager = nullptr;
+    }
+}
+
 void BangOlufsen::updateEntity(const QString &entity_id, const QVariantMap &map) {
     EntityInterface *entity = m_entities->getEntityInterface(entity_id);
     if (entity) {
