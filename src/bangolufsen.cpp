@@ -60,6 +60,19 @@ BangOlufsen::BangOlufsen(const QVariantMap &config, EntitiesInterface *entities,
     m_pollingTimer->setInterval(10000);
     QObject::connect(m_pollingTimer, &QTimer::timeout, this, &BangOlufsen::onPollingTimerTimeout);
 
+    m_manager = new QNetworkAccessManager(this);
+
+    // handle closed connection
+    QObject::connect(m_manager, &QNetworkAccessManager::finished, this,
+                     [=]() {
+                         if (!m_userDisconnect) {
+                             qCDebug(m_logCategory)
+                                 << "Manager finished: Bang & Olufsen product dropped the connection, reconnecting ...";
+                             disconnect();
+                             connect();
+                         }
+                     });
+
     // add available entity
     QStringList supportedFeatures;
     supportedFeatures << "SOURCE"
@@ -162,18 +175,16 @@ void BangOlufsen::connect() {
         m_userDisconnect = false;
         qCDebug(m_logCategory) << "Connecting to a Bang & Olufsen product:" << m_baseUrl;
 
-        m_manager = new QNetworkAccessManager(this);
-
         QNetworkRequest request;
         request.setUrl(QUrl(m_baseUrl + "/BeoNotify/Notifications"));
 
-        QNetworkReply *reply = m_manager->get(request);
+        m_reply = m_manager->get(request);
 
         // read the streaming json
-        QObject::connect(reply, &QIODevice::readyRead, this, [=]() {
-            if (!reply->error()) {
+        QObject::connect(m_reply, &QIODevice::readyRead, this, [=]() {
+            if (!m_reply->error()) {
                 setState(CONNECTED);
-                QString     answer  = reply->readAll();
+                QString     answer  = m_reply->readAll();
                 QStringList answers = answer.split("\r\n\r\n");
 
                 for (int i = 0; i < answers.length(); i++) {
@@ -195,29 +206,13 @@ void BangOlufsen::connect() {
                     }
                 }
             } else {
-                qCDebug(m_logCategory) << "Cannot connect" << reply->errorString();
+                qCDebug(m_logCategory) << "Cannot connect" << m_reply->errorString();
                 disconnect();
-            }
-        });
-
-        // handle closed connection
-        QObject::connect(m_manager, &QNetworkAccessManager::finished, this, [=]() {
-            qCDebug(m_logCategory) << "Manager finished: Network access manager finished";
-            if (m_manager != nullptr) {
-                m_manager->disconnect();
-                m_manager->deleteLater();
-            }
-            m_manager = nullptr;
-            qCDebug(m_logCategory) << "Manager finished: Network access manager deleted.";
-            if (!m_userDisconnect) {
-                qCDebug(m_logCategory) << "Manager finished: Bang & Olufsen product disconnected, reconnecting ...";
-                disconnect();
-                connect();
             }
         });
 
         // handle dropped connection
-        QObject::connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), this,
+        QObject::connect(m_reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error), this,
                          [=](QNetworkReply::NetworkError code) {
                              if (!m_userDisconnect) {
                                  qCDebug(m_logCategory)
@@ -237,12 +232,8 @@ void BangOlufsen::disconnect() {
     if (m_state != DISCONNECTED) {
         qCDebug(m_logCategory) << "Disconnecting a Bang & Olufsen product";
         m_userDisconnect = true;
-        if (m_manager != nullptr) {
-            m_manager->disconnect();
-            m_manager->deleteLater();
-        }
-        m_manager = nullptr;
-        qCDebug(m_logCategory) << "Network access manager deleted.";
+        m_reply->abort();
+        m_reply->disconnect();
         setState(DISCONNECTED);
     }
 }

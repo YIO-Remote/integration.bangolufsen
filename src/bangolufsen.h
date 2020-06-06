@@ -88,7 +88,8 @@ class BangOlufsen : public Integration {
     QString m_baseUrl;
     QString m_entityId;
 
-    QNetworkAccessManager* m_manager;
+    QNetworkAccessManager* m_manager = nullptr;
+    QNetworkReply*         m_reply   = nullptr;
 
     bool m_userDisconnect = false;
 
