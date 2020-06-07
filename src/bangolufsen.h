@@ -64,6 +64,8 @@ class BangOlufsen : public Integration {
     BangOlufsen(const QVariantMap& config, EntitiesInterface* entities, NotificationsInterface* notifications,
                 YioAPIInterface* api, ConfigInterface* configObj, Plugin* plugin);
 
+    ~BangOlufsen() override;
+
     void sendCommand(const QString& type, const QString& entityId, int command, const QVariant& param) override;
 
  signals:
@@ -88,7 +90,8 @@ class BangOlufsen : public Integration {
     QString m_baseUrl;
     QString m_entityId;
 
-    QNetworkAccessManager* m_manager;
+    QNetworkAccessManager* m_manager = nullptr;
+    QNetworkReply*         m_reply   = nullptr;
 
     bool m_userDisconnect = false;
 
