@@ -29,7 +29,7 @@
 
 #include "yio-interface/entities/mediaplayerinterface.h"
 
-BangOlufsenPlugin::BangOlufsenPlugin() : Plugin("bangolufsen", USE_WORKER_THREAD) {}
+BangOlufsenPlugin::BangOlufsenPlugin() : Plugin("yio.plugin.bangolufsen", USE_WORKER_THREAD) {}
 
 Integration *BangOlufsenPlugin::createIntegration(const QVariantMap &config, EntitiesInterface *entities,
                                                   NotificationsInterface *notifications, YioAPIInterface *api,
@@ -49,9 +49,9 @@ BangOlufsen::BangOlufsen(const QVariantMap &config, EntitiesInterface *entities,
     for (QVariantMap::const_iterator iter = config.begin(); iter != config.end(); ++iter) {
         if (iter.key() == Integration::OBJ_DATA) {
             QVariantMap map = iter.value().toMap();
-            m_ip            = map.value(Integration::KEY_DATA_IP).toString();
-            m_baseUrl       = QString("http://").append(m_ip).append(":8080");
-            m_entityId      = map.value(Integration::KEY_ENTITY_ID).toString();
+            m_ip = map.value(Integration::KEY_DATA_IP).toString();
+            m_baseUrl = QString("http://").append(m_ip).append(":8080");
+            m_entityId = map.value(Integration::KEY_ENTITY_ID).toString();
         }
     }
 
@@ -198,7 +198,7 @@ void BangOlufsen::connect() {
         QObject::connect(m_reply, &QIODevice::readyRead, this, [=]() {
             if (!m_reply->error()) {
                 setState(CONNECTED);
-                QString     answer  = m_reply->readAll();
+                QString     answer = m_reply->readAll();
                 QStringList answers = answer.split("\r\n\r\n");
 
                 for (int i = 0; i < answers.length(); i++) {
@@ -252,9 +252,13 @@ void BangOlufsen::disconnect() {
     }
 }
 
-void BangOlufsen::enterStandby() { disconnect(); }
+void BangOlufsen::enterStandby() {
+    disconnect();
+}
 
-void BangOlufsen::leaveStandby() { connect(); }
+void BangOlufsen::leaveStandby() {
+    connect();
+}
 
 void BangOlufsen::sendCommand(const QString &type, const QString &entity_id, int command, const QVariant &param) {
     if (entity_id == m_entityId && type == "media_player") {
@@ -264,7 +268,7 @@ void BangOlufsen::sendCommand(const QString &type, const QString &entity_id, int
             Play();
         } else if (command == MediaPlayerDef::C_MUTE) {
             EntityInterface *     entity = m_entities->getEntityInterface(entity_id);
-            MediaPlayerInterface *me     = static_cast<MediaPlayerInterface *>(entity->getSpecificInterface());
+            MediaPlayerInterface *me = static_cast<MediaPlayerInterface *>(entity->getSpecificInterface());
             if (entity) {
                 setMute(!me->muted());
             }
@@ -380,15 +384,17 @@ void BangOlufsen::putRequest(const QString &url, const QVariantMap &params) {
 
     request.setUrl(QUrl(m_baseUrl + url));
 
-    QJsonDocument json       = QJsonDocument::fromVariant(params);
+    QJsonDocument json = QJsonDocument::fromVariant(params);
     QString       jsonString = json.toJson(QJsonDocument::JsonFormat::Compact);
-    QByteArray    data       = jsonString.toUtf8();
+    QByteArray    data = jsonString.toUtf8();
 
     // send the get request
     manager->put(request, data);
 }
 
-void BangOlufsen::putRequest(const QString &url) { putRequest(url, QVariantMap()); }
+void BangOlufsen::putRequest(const QString &url) {
+    putRequest(url, QVariantMap());
+}
 
 int BangOlufsen::getVolume(const QVariantMap &map) {
     int volume = -1;
@@ -550,4 +556,6 @@ void BangOlufsen::TurnOn() {
     putRequest("/BeoDevice/powerManagement/standby", motherData);
 }
 
-void BangOlufsen::onPollingTimerTimeout() { getStandby(); }
+void BangOlufsen::onPollingTimerTimeout() {
+    getStandby();
+}
