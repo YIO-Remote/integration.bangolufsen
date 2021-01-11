@@ -71,7 +71,7 @@ class BangOlufsen : public Integration {
  signals:
     void requestReady(const QVariantMap& obj, const QString& url);
 
- public slots:  // NOLINT open issue: https://github.com/cpplint/cpplint/pull/99
+ public slots:
     void connect() override;
     void disconnect() override;
     void enterStandby() override;
@@ -124,6 +124,6 @@ class BangOlufsen : public Integration {
     //    void joinExperience();
     //    void leaveExperience();
 
- private slots:  // NOLINT open issue: https://github.com/cpplint/cpplint/pull/99
+ private slots:
     void onPollingTimerTimeout();
 };
